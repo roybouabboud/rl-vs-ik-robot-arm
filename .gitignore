@@ -1,0 +1,26 @@
+# Robot models: cloned separately (2.4 GB, has its own git history)
+mujoco_menagerie/
+
+# Python
+__pycache__/
+*.pyc
+.venv/
+venv/
+.ipynb_checkpoints/
+
+# Training outputs (later phases)
+runs/
+checkpoints/
+wandb/
+*.pt
+*.ckpt
+
+# OS / editors
+.DS_Store
+Thumbs.db
+.vscode/
+.idea/
+
+# Tutorial guides and checkers stay local (not pushed)
+kinematics/0*_*.md
+kinematics/check_*.py

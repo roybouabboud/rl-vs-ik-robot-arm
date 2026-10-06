@@ -1,0 +1,6 @@
+0 shoulder_pan shoulder_pan_joint
+1 shoulder_lift shoulder_lift_joint
+2 elbow elbow_joint
+3 wrist_1 wrist_1_joint
+4 wrist_2 wrist_2_joint
+5 wrist_3 wrist_3_joint
