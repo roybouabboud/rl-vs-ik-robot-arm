@@ -2,7 +2,7 @@
 
 Run from the repo root:  python kinematics/go_to_pose.py
 Then type `x y z` in this terminal (e.g. `0.4 0.2 0.3`) and press Enter. `q` quits.
-Needs ik_pose_restarts in pose_ik.py done.
+Needs ik_pose_restarts in ik.py done.
 """
 
 import sys
@@ -17,7 +17,7 @@ import numpy as np
 sys.path.insert(0, str(Path(__file__).parent))
 from fk import EE_SITE  # noqa: E402
 from go_to_point import build_model, read_targets  # noqa: E402
-from pose_ik import R_DOWN, ik_pose_restarts, rotation_error  # noqa: E402
+from ik import R_DOWN, ik_pose_restarts, rotation_error  # noqa: E402
 
 
 def main():
