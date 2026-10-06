@@ -9,6 +9,7 @@ Simulation and software only.
 - [x] 1. Forward kinematics: `mj_kinematics`, site poses, workspace sampling (`kinematics/`)
 - [x] 2. Jacobians with `mj_jacSite`
 - [ ] 3. Inverse kinematics on top of MuJoCo's Jacobian; type `x y z`, the arm goes there
+- [ ] 3b. Full-pose IK (position + orientation): 6×6 Jacobian, orientation error via `mju_subQuat`
 - [ ] 4. Trajectories and control: smooth motion, torque control with gravity compensation (`qfrc_bias`)
 
 **Phase 2: reinforcement learning**

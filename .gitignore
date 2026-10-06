@@ -24,3 +24,6 @@ Thumbs.db
 # Tutorial guides and checkers stay local (not pushed)
 kinematics/0*_*.md
 kinematics/check_*.py
+
+# Local Claude Code settings
+.claude/
