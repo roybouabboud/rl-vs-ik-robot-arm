@@ -27,3 +27,7 @@ kinematics/check_*.py
 
 # Local Claude Code settings
 .claude/
+
+# Same for later steps
+control/0*_*.md
+control/check_*.py

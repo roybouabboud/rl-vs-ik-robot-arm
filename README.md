@@ -10,7 +10,7 @@ Simulation and software only.
 - [x] 2. Jacobians with `mj_jacSite`
 - [x] 3. Inverse kinematics on top of MuJoCo's Jacobian; type `x y z`, the arm goes there
 - [x] 3b. Full-pose IK (position + orientation): 6×6 Jacobian, orientation error via `mju_subQuat`
-- [ ] 4. Trajectories and control: smooth motion, torque control with gravity compensation (`qfrc_bias`)
+- [ ] 4. Trajectories and control: smooth motion, torque control with gravity compensation (`qfrc_bias`) (`control/`)
 
 **Phase 2: reinforcement learning**
 - [ ] Gymnasium "reach any point" env, PPO/SAC, benchmark against the IK solver
@@ -30,6 +30,7 @@ Run scripts from the repo root, e.g. `python kinematics/check_fk.py`.
 
 ## Layout
 
-- `kinematics/`: phase 1 code and guides (`01_forward_kinematics.md`, ...)
+- `kinematics/`: phase 1, steps 1–3b (FK, Jacobians, IK)
+- `control/`: phase 1, step 4 (trajectories, torque control)
 - `test/`: early MuJoCo experiments
 - `envs/`, `rl/`, `models/`, `experiments/`, `scripts/`: reserved for later phases
