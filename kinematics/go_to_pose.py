@@ -2,6 +2,7 @@
 
 Run from the repo root:  python kinematics/go_to_pose.py
 Then type `x y z` in this terminal (e.g. `0.4 0.2 0.3`) and press Enter. `q` quits.
+Several points at once, visited in order: `0.4 0.2 0.3; 0.3 -0.4 0.2`.
 Needs ik_pose_restarts in ik.py done.
 """
 
@@ -33,7 +34,7 @@ def main():
     with mujoco.viewer.launch_passive(model, data) as viewer:
         target, report_at = None, None
         while viewer.is_running() and not stop.is_set():
-            if queue:
+            if queue and report_at is None:  # wait for the arm to settle before the next point
                 target = queue.pop(0)
                 data.mocap_pos[0] = target
                 q, ok, restarts = ik_pose_restarts(model, data, target, R_DOWN, data.qpos[:6].copy())
