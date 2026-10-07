@@ -10,7 +10,7 @@ Simulation and software only.
 - [x] 2. Jacobians with `mj_jacSite`
 - [x] 3. Inverse kinematics on top of MuJoCo's Jacobian; type `x y z`, the arm goes there
 - [x] 3b. Full-pose IK (position + orientation): 6×6 Jacobian, orientation error via `mju_subQuat`
-- [ ] 4. Trajectories and control: smooth motion, torque control with gravity compensation (`qfrc_bias`) (`control/`)
+- [x] 4. Trajectories and control: smooth motion, torque control with gravity compensation (`qfrc_bias`) (`control/`)
 
 **Phase 2: reinforcement learning**
 - [ ] Gymnasium "reach any point" env, PPO/SAC, benchmark against the IK solver

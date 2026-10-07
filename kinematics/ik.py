@@ -135,7 +135,7 @@ def ik_pose_restarts(model: mujoco.MjModel, data: mujoco.MjData, target_pos, tar
     rng = np.random.default_rng(seed=seed)
     q = q0
     for i in range(n_restarts+1):
-        q_new, test, _ = ik_pose(model, data, target_pos, target_R, q, **ik_kwargs)
+        q_new, test, iters = ik_pose(model, data, target_pos, target_R, q, **ik_kwargs)
         if test:
             return q_new, test, i
         q = rng.uniform(model.jnt_range[:,0], model.jnt_range[:,1])

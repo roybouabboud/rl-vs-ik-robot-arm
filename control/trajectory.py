@@ -13,14 +13,18 @@ def min_jerk(tau: float) -> tuple[float, float]:
     s(tau)  = 10 tau^3 - 15 tau^4 + 6 tau^5
     s'(tau) = 30 tau^2 - 60 tau^3 + 30 tau^4
     """
-    # TODO 1
-    raise NotImplementedError
+    t = np.clip(tau, 0, 1)
+    s = 10*t**3 - 15*t**4 + 6*t**5
+    ds = 30*t**2 - 60*t**3 + 30*t**4
+    return s, ds
 
 
 def joint_trajectory(q_start: np.ndarray, q_goal: np.ndarray, T: float, t: float) -> tuple[np.ndarray, np.ndarray]:
     """Desired (joint angles, joint velocities) at time t of a min-jerk move from q_start to q_goal lasting T seconds."""
-    # TODO 2
-    raise NotImplementedError
+    s, ds = min_jerk((t/T))
+    q_des = q_start + (q_goal - q_start)*s
+    dq_des = (q_goal - q_start)*(ds/T)
+    return q_des, dq_des
 
 
 if __name__ == "__main__":
