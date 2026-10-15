@@ -36,4 +36,4 @@ Run scripts from the repo root, e.g. `python kinematics/check_fk.py`.
 - `control/`: phase 1, step 4 (trajectories, torque control)
 - `rl/`: phase 2 (reinforcement learning)
 - `test/`: early MuJoCo experiments
-- `envs/`, `rl/`, `models/`, `experiments/`, `scripts/`: reserved for later phases
+- `envs/`, `models/`, `experiments/`, `scripts/`: reserved for later phases
