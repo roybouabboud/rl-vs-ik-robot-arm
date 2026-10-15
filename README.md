@@ -13,7 +13,7 @@ Simulation and software only.
 - [x] 4. Trajectories and control: smooth motion, torque control with gravity compensation (`qfrc_bias`) (`control/`)
 
 **Phase 2: reinforcement learning**
-- [ ] 5. Gymnasium "reach any point" env (`rl/`)
+- [x] 5. Gymnasium "reach any point" env (`rl/`)
 - [ ] 6. Train SAC/PPO with Stable-Baselines3, evaluate
 - [ ] 7. Benchmark RL against the IK solver
 
