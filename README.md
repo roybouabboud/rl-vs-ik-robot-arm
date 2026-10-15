@@ -13,7 +13,9 @@ Simulation and software only.
 - [x] 4. Trajectories and control: smooth motion, torque control with gravity compensation (`qfrc_bias`) (`control/`)
 
 **Phase 2: reinforcement learning**
-- [ ] Gymnasium "reach any point" env, PPO/SAC, benchmark against the IK solver
+- [ ] 5. Gymnasium "reach any point" env (`rl/`)
+- [ ] 6. Train SAC/PPO with Stable-Baselines3, evaluate
+- [ ] 7. Benchmark RL against the IK solver
 
 **Phase 3: VLM / VLA**
 - [ ] Language ("go to the red cube") to 3D target via a VLM, then IK
@@ -32,5 +34,6 @@ Run scripts from the repo root, e.g. `python kinematics/check_fk.py`.
 
 - `kinematics/`: phase 1, steps 1–3b (FK, Jacobians, IK)
 - `control/`: phase 1, step 4 (trajectories, torque control)
+- `rl/`: phase 2 (reinforcement learning)
 - `test/`: early MuJoCo experiments
 - `envs/`, `rl/`, `models/`, `experiments/`, `scripts/`: reserved for later phases

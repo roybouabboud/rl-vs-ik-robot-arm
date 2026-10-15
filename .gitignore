@@ -31,3 +31,5 @@ kinematics/check_*.py
 # Same for later steps
 control/0*_*.md
 control/check_*.py
+rl/0*_*.md
+rl/check_*.py
