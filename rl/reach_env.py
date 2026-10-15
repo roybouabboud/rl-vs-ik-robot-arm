@@ -13,7 +13,7 @@ import numpy as np
 from gymnasium import spaces
 
 sys.path.insert(0, str(Path(__file__).resolve().parent.parent / "kinematics"))
-from fk import EE_SITE  # noqa: E402
+from fk import EE_SITE, ee_pose, sample_workspace  # noqa: E402
 from go_to_point import build_model  # noqa: E402  (UR5e scene + red mocap target sphere)
 
 
@@ -44,28 +44,62 @@ class ReachEnv(gym.Env):
 
     def _get_obs(self) -> np.ndarray:
         """[joint angles (6), joint velocities (6), hand pos (3), target (3), target - hand (3)] as float32."""
-        # TODO 1
-        raise NotImplementedError
+        q = self.data.qpos[:]
+        dq = self.data.qvel[:]
+        pos, _ = ee_pose(self.model, self.data, q)
+        target = self.target
+        dist = target - pos
+        res = np.concatenate([q, dq, pos, target, dist], 0)
+        return res.astype(np.float32)
+
 
     def _sample_target(self) -> np.ndarray:
         """A random reachable point: FK of random joint angles (on self.scratch), at least 5 cm above
         the floor and at least 20 cm from the base's vertical axis. Use self.np_random."""
-        # TODO 2
-        raise NotImplementedError
+        lims = self.model.jnt_range
+        low_lims = lims[:,0]
+        high_lims = lims[:, 1]
+        while True:
+            q_rand = self.np_random.uniform(low_lims, high_lims)
+            point, _ = ee_pose(self.model, self.scratch, q_rand)
+            if point[2] > 0.05 and np.linalg.norm(point[:2]) > 0.2:
+                return point
+        
 
     def _reward(self, distance: float, action: np.ndarray) -> tuple[float, bool]:
         """reward = -distance - 0.01 * |action|^2 + (1 if success). Returns (reward, success)."""
-        # TODO 3
-        raise NotImplementedError
+        success = False
+        reward = np.float32(-1*distance - 0.01*np.linalg.norm(action)**2)
+        if distance <= 0.02: 
+            reward += 1
+            success = True
+        return reward, success
+
 
     def reset(self, seed: int | None = None, options: dict | None = None):
         super().reset(seed=seed)  # seeds self.np_random
-        # TODO 4
-        raise NotImplementedError
+        mujoco.mj_resetDataKeyframe(self.model, self.data, self.home_id)
+        q_noise = self.np_random.uniform(-0.1, 0.1, size=6)
+        self.data.qpos[:6] += q_noise
+        self.data.ctrl = self.data.qpos[:6]
+        self.target = self._sample_target()
+        self.data.mocap_pos[0] = self.target
+        mujoco.mj_forward(self.model, self.data)
+        self.steps = 0
+        return self._get_obs(), {}
+
 
     def step(self, action):
-        # TODO 5
-        raise NotImplementedError
+        act = np.clip(action, -1, 1)
+        self.data.ctrl += act * self.action_scale
+        self.data.ctrl = np.clip(self.data.ctrl, self.ctrl_low, self.ctrl_high)
+        for i in range(self.frame_skip): mujoco.mj_step(self.model, self.data)
+        mujoco.mj_forward(self.model, self.data)  # mj_step leaves site_xpos one step stale
+        dist = np.linalg.norm(self.target - self.data.site_xpos[self.site_id])
+        reward, success = self._reward(dist, act)
+        self.steps += 1
+        return self._get_obs(), reward, success, self.steps >= self.max_steps, {"distance": dist, "is_success": success}
+
 
     # --- viewer (provided) ---------------------------------------------------------
     def render(self):
