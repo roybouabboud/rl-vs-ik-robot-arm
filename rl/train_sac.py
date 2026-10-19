@@ -28,21 +28,20 @@ def make_envs(n_envs: int, seed: int):
 
     The training env has n_envs copies seeded from `seed`; the eval env has 1 copy seeded from
     seed + 1000, so evaluation episodes are ones the policy never trained on."""
-    # TODO 1
-    raise NotImplementedError
+    train_env = make_vec_env(ReachEnv, n_envs, seed=seed)
+    eval_env = make_vec_env(ReachEnv, 1, seed=(seed+1000))
+    return train_env, eval_env
 
 
 def make_model(train_env, seed: int) -> SAC:
     """SAC with an MLP policy on train_env, seeded, logging to TensorBoard under RUNS_DIR."""
-    # TODO 2
-    raise NotImplementedError
+    return SAC("MlpPolicy", train_env, seed=seed, tensorboard_log=RUNS_DIR)
 
 
 def make_eval_callback(eval_env, run_name: str, eval_freq: int = 5000) -> EvalCallback:
     """Every eval_freq steps: run 20 deterministic episodes on eval_env, log the results, and save the
     best model so far to CKPT_DIR / run_name (as best_model.zip)."""
-    # TODO 3
-    raise NotImplementedError
+    return EvalCallback(eval_env, eval_freq=eval_freq, n_eval_episodes=20, deterministic=True, log_path=CKPT_DIR/run_name, best_model_save_path=CKPT_DIR/run_name)
 
 
 def train(steps: int, n_envs: int = 1, seed: int = 0, run_name: str = "sac_reach",
@@ -50,8 +49,12 @@ def train(steps: int, n_envs: int = 1, seed: int = 0, run_name: str = "sac_reach
     """Build everything, train for `steps` environment steps, save the final model to
     CKPT_DIR / run_name / "final.zip", and return the model. Evaluate every eval_freq *env* steps
     (careful: EvalCallback counts vectorized steps, which are n_envs env steps each)."""
-    # TODO 4
-    raise NotImplementedError
+    train_env, eval_env = make_envs(n_envs, seed=seed)
+    sac_model = make_model(train_env, seed=seed)
+    callback = make_eval_callback(eval_env, run_name, eval_freq=max(eval_freq//n_envs, 1))
+    sac_model.learn(steps, callback=callback, tb_log_name=run_name)
+    sac_model.save(CKPT_DIR/run_name/"final")
+    return sac_model
 
 
 if __name__ == "__main__":

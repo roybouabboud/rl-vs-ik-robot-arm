@@ -37,8 +37,32 @@ def evaluate(model, env: ReachEnv, n_episodes: int = 50, seed: int = 10_000,
     Returns {"success_rate", "mean_final_distance", "mean_return", "mean_steps"}: success_rate in [0, 1],
     final distance in metres (from the last step's info), mean_steps = steps per episode.
     If render: call env.render() each step and sleep so it plays in real time."""
-    # TODO 5
-    raise NotImplementedError
+    successes = []
+    fin_dist = []
+    returns = []
+    steps = []
+
+    for i in range(n_episodes):
+        obs, _ = env.reset(seed=seed + i)  # reset returns (obs, info)
+        total = 0.0
+        ctr = 0
+        while True:
+            action, _ = model.predict(obs, deterministic=True)  # (action, state); state is unused
+            obs, reward, terminated, truncated, info = env.step(action)
+            total += reward
+            ctr += 1
+            if render:
+                env.render()
+                time.sleep(env.frame_skip * env.model.opt.timestep)  # real time
+            if terminated or truncated:
+                break
+        successes.append(info["is_success"])
+        fin_dist.append(info["distance"])
+        returns.append(total)
+        steps.append(ctr)
+
+    return {"success_rate": float(np.mean(successes)), "mean_final_distance": float(np.mean(fin_dist)),
+            "mean_return": float(np.mean(returns)), "mean_steps": float(np.mean(steps))}
 
 
 if __name__ == "__main__":
