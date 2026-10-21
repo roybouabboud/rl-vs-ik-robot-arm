@@ -13,6 +13,7 @@ from pathlib import Path
 
 import numpy as np
 from stable_baselines3 import SAC
+from stable_baselines3.common.vec_env import DummyVecEnv, VecNormalize
 
 sys.path.insert(0, str(Path(__file__).resolve().parent))
 from reach_env import ReachEnv  # noqa: E402
@@ -28,6 +29,19 @@ class RandomPolicy:
 
     def predict(self, obs, deterministic=True):
         return self.action_space.sample(), None
+
+
+class NormalizedPolicy:
+    """Wraps a model trained with VecNormalize: rescales each raw observation with the saved training
+    statistics before asking the model for an action. Same predict() interface, so evaluate() needs no changes."""
+
+    def __init__(self, model, stats_path):
+        self.model = model
+        self.vec_norm = VecNormalize.load(stats_path, DummyVecEnv([ReachEnv]))
+        self.vec_norm.training = False  # use the saved statistics, don't keep updating them
+
+    def predict(self, obs, deterministic=True):
+        return self.model.predict(self.vec_norm.normalize_obs(obs), deterministic=deterministic)
 
 
 def evaluate(model, env: ReachEnv, n_episodes: int = 50, seed: int = 10_000,
@@ -70,10 +84,18 @@ if __name__ == "__main__":
     parser.add_argument("--model", default=str(ROOT / "checkpoints" / "sac_reach" / "best_model.zip"))
     parser.add_argument("--episodes", type=int, default=50)
     parser.add_argument("--render", action="store_true")
+    parser.add_argument("--stats", default=None,
+                        help="VecNormalize statistics (default: vecnormalize.pkl next to the model, if it exists)")
     args = parser.parse_args()
 
     env = ReachEnv(render_mode="human" if args.render else None)
     model = SAC.load(args.model)
+    stats = Path(args.stats) if args.stats else Path(args.model).parent / "vecnormalize.pkl"
+    if stats.exists():
+        model = NormalizedPolicy(model, stats)
+        print(f"using observation statistics from {stats}")
+    else:
+        print("no vecnormalize.pkl found: using raw observations (models trained before VecNormalize)")
     for name, policy in [("random", RandomPolicy(env)), ("trained", model)]:
         r = evaluate(policy, env, args.episodes, render=args.render and name == "trained")
         print(f"{name:8s} success {r['success_rate'] * 100:5.1f}%   final distance {r['mean_final_distance'] * 100:5.1f} cm"

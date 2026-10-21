@@ -14,6 +14,7 @@ from pathlib import Path
 from stable_baselines3 import SAC
 from stable_baselines3.common.callbacks import EvalCallback
 from stable_baselines3.common.env_util import make_vec_env
+from stable_baselines3.common.vec_env import VecNormalize
 
 sys.path.insert(0, str(Path(__file__).resolve().parent))
 from reach_env import ReachEnv  # noqa: E402
@@ -29,7 +30,9 @@ def make_envs(n_envs: int, seed: int):
     The training env has n_envs copies seeded from `seed`; the eval env has 1 copy seeded from
     seed + 1000, so evaluation episodes are ones the policy never trained on."""
     train_env = make_vec_env(ReachEnv, n_envs, seed=seed)
+    train_env = VecNormalize(train_env, norm_obs=True, norm_reward=False)
     eval_env = make_vec_env(ReachEnv, 1, seed=(seed+1000))
+    eval_env = VecNormalize(eval_env, norm_obs=True, norm_reward=False, training=False)
     return train_env, eval_env
 
 
@@ -53,6 +56,7 @@ def train(steps: int, n_envs: int = 1, seed: int = 0, run_name: str = "sac_reach
     sac_model = make_model(train_env, seed=seed)
     callback = make_eval_callback(eval_env, run_name, eval_freq=max(eval_freq//n_envs, 1))
     sac_model.learn(steps, callback=callback, tb_log_name=run_name)
+    train_env.save(CKPT_DIR/run_name/"vecnormalize.pkl")
     sac_model.save(CKPT_DIR/run_name/"final")
     return sac_model
 

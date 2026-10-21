@@ -20,8 +20,9 @@ from go_to_point import build_model  # noqa: E402  (UR5e scene + red mocap targe
 class ReachEnv(gym.Env):
     metadata = {"render_modes": ["human"], "render_fps": 50}
 
-    def __init__(self, max_steps: int = 100, frame_skip: int = 10, action_scale: float = 0.05,
-                 success_tol: float = 0.02, render_mode: str | None = None):
+    def __init__(self, max_steps: int = 200, frame_skip: int = 10, action_scale: float = 0.025,
+                 success_tol: float = 0.02, render_mode: str | None = None, sigma: float = 0.1,
+                 bonus: float = 10):
         self.model = build_model()
         self.data = mujoco.MjData(self.model)
         self.scratch = mujoco.MjData(self.model)  # for "what-if" FK when sampling targets
@@ -35,6 +36,8 @@ class ReachEnv(gym.Env):
         self.success_tol = success_tol
         self.render_mode = render_mode
         self.viewer = None
+        self.sigma = sigma
+        self.bonus = bonus
 
         self.action_space = spaces.Box(-1.0, 1.0, shape=(6,), dtype=np.float32)
         self.observation_space = spaces.Box(-np.inf, np.inf, shape=(21,), dtype=np.float32)
@@ -67,13 +70,14 @@ class ReachEnv(gym.Env):
         
 
     def _reward(self, distance: float, action: np.ndarray) -> tuple[float, bool]:
-        """reward = -distance - 0.01 * |action|^2 + (1 if success). Returns (reward, success)."""
+        """reward = -distance - 0.01 * |action|^2 + (exp(-d/sigma) - 1) + (bonus if success). Returns (reward, success)."""
         success = False
-        reward = np.float32(-1*distance - 0.01*np.linalg.norm(action)**2)
-        if distance <= 0.02: 
-            reward += 1
+        reward = np.float32(-1*distance - 0.01*np.linalg.norm(action)**2 + (np.exp(-1*distance/self.sigma)-1))
+        if distance <= self.success_tol: 
+            reward += self.bonus
             success = True
         return reward, success
+    # TO IMPROVE FOR BETTER CONVERGENCE: reward, tolerance, action size, observation
 
 
     def reset(self, seed: int | None = None, options: dict | None = None):
