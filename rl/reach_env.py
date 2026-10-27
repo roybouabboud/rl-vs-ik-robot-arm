@@ -15,20 +15,21 @@ from gymnasium import spaces
 sys.path.insert(0, str(Path(__file__).resolve().parent.parent / "kinematics"))
 from fk import EE_SITE, ee_pose, sample_workspace  # noqa: E402
 from go_to_point import build_model  # noqa: E402  (UR5e scene + red mocap target sphere)
-BASE_SITE = "base"
+BASE_BODY = "base"
 
 
 class ReachEnv(gym.Env):
     metadata = {"render_modes": ["human"], "render_fps": 50}
 
     def __init__(self, max_steps: int = 200, frame_skip: int = 10, action_scale: float = 0.025,
-                 success_tol: float = 0.02, render_mode: str | None = None, sigma: float = 0.1,
-                 bonus: float = 10):
+                 success_tol: float = 0.02, render_mode: str | None = None, sigma_near: float = 0.1,
+                 sigma_far: float = 1.2, bonus: float = 10, overshoot_weight: float = 0.5,
+                 action_weight: float = 0.01):
         self.model = build_model()
         self.data = mujoco.MjData(self.model)
         self.scratch = mujoco.MjData(self.model)  # for "what-if" FK when sampling targets
         self.ee_id = self.model.site(EE_SITE).id
-        self.base_id = self.model.body(BASE_SITE).id
+        self.base_id = self.model.body(BASE_BODY).id
         self.home_id = self.model.key("home").id
         self.ctrl_low, self.ctrl_high = self.model.actuator_ctrlrange.T.copy()
 
@@ -38,8 +39,11 @@ class ReachEnv(gym.Env):
         self.success_tol = success_tol
         self.render_mode = render_mode
         self.viewer = None
-        self.sigma = sigma
+        self.sigma_near = sigma_near
+        self.sigma_far = sigma_far
         self.bonus = bonus
+        self.overshoot_weight = overshoot_weight
+        self.action_weight = action_weight
 
         self.action_space = spaces.Box(-1.0, 1.0, shape=(6,), dtype=np.float32)
         self.observation_space = spaces.Box(-np.inf, np.inf, shape=(21,), dtype=np.float32)
@@ -72,9 +76,10 @@ class ReachEnv(gym.Env):
         
 
     def _reward(self, distance: float, action: np.ndarray, overshoot: float=0.0) -> tuple[float, bool]:
-        """reward = -distance - 0.01 * |action|^2 + (exp(-d/sigma) - 1) - 0.5 * max(0, overshoot) + (bonus if success). Returns (reward, success)."""
+        """reward = -distance - action_weight * |action|^2 + (exp(-d/sigma_near) - 1) + (exp(-d/sigma_far) - 1)
+        - overshoot_weight * max(0, overshoot) + (bonus if success). Returns (reward, success)."""
         success = False
-        reward = np.float32(-1*distance - 0.01*np.linalg.norm(action)**2 + (np.exp(-1*distance/self.sigma)-1) -0.5*max(0, overshoot))
+        reward = np.float32(-1*distance - self.action_weight*np.linalg.norm(action)**2 + (np.exp(-1*distance/self.sigma_near)-1) + (np.exp(-1*distance/self.sigma_far)-1) - self.overshoot_weight*max(0, overshoot))
         if distance <= self.success_tol: 
             reward += self.bonus
             success = True
