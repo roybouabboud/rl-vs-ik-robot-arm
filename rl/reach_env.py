@@ -15,6 +15,7 @@ from gymnasium import spaces
 sys.path.insert(0, str(Path(__file__).resolve().parent.parent / "kinematics"))
 from fk import EE_SITE, ee_pose, sample_workspace  # noqa: E402
 from go_to_point import build_model  # noqa: E402  (UR5e scene + red mocap target sphere)
+BASE_SITE = "base"
 
 
 class ReachEnv(gym.Env):
@@ -26,7 +27,8 @@ class ReachEnv(gym.Env):
         self.model = build_model()
         self.data = mujoco.MjData(self.model)
         self.scratch = mujoco.MjData(self.model)  # for "what-if" FK when sampling targets
-        self.site_id = self.model.site(EE_SITE).id
+        self.ee_id = self.model.site(EE_SITE).id
+        self.base_id = self.model.body(BASE_SITE).id
         self.home_id = self.model.key("home").id
         self.ctrl_low, self.ctrl_high = self.model.actuator_ctrlrange.T.copy()
 
@@ -69,10 +71,10 @@ class ReachEnv(gym.Env):
                 return point
         
 
-    def _reward(self, distance: float, action: np.ndarray) -> tuple[float, bool]:
-        """reward = -distance - 0.01 * |action|^2 + (exp(-d/sigma) - 1) + (bonus if success). Returns (reward, success)."""
+    def _reward(self, distance: float, action: np.ndarray, overshoot: float=0.0) -> tuple[float, bool]:
+        """reward = -distance - 0.01 * |action|^2 + (exp(-d/sigma) - 1) - 0.5 * max(0, overshoot) + (bonus if success). Returns (reward, success)."""
         success = False
-        reward = np.float32(-1*distance - 0.01*np.linalg.norm(action)**2 + (np.exp(-1*distance/self.sigma)-1))
+        reward = np.float32(-1*distance - 0.01*np.linalg.norm(action)**2 + (np.exp(-1*distance/self.sigma)-1) -0.5*max(0, overshoot))
         if distance <= self.success_tol: 
             reward += self.bonus
             success = True
@@ -99,10 +101,16 @@ class ReachEnv(gym.Env):
         self.data.ctrl = np.clip(self.data.ctrl, self.ctrl_low, self.ctrl_high)
         for i in range(self.frame_skip): mujoco.mj_step(self.model, self.data)
         mujoco.mj_forward(self.model, self.data)  # mj_step leaves site_xpos one step stale
-        dist = np.linalg.norm(self.target - self.data.site_xpos[self.site_id])
-        reward, success = self._reward(dist, act)
+        dist = np.linalg.norm(self.target - self.data.site_xpos[self.ee_id])
+        u = self.target - self.data.xpos[self.base_id]
+        u[2] = 0
+        overshoot = 0
+        if np.linalg.norm(u) > 1e-6:
+            v = self.data.site_xpos[self.ee_id] - self.data.xpos[self.base_id]
+            overshoot = (np.dot(u, v) / np.linalg.norm(u)) - np.linalg.norm(u)
+        reward, success = self._reward(dist, act, overshoot)
         self.steps += 1
-        return self._get_obs(), reward, success, self.steps >= self.max_steps, {"distance": dist, "is_success": success}
+        return self._get_obs(), reward, success, self.steps >= self.max_steps, {"distance": dist, "is_success": success, "overshoot": overshoot}
 
 
     # --- viewer (provided) ---------------------------------------------------------
