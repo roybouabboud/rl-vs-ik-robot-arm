@@ -23,7 +23,7 @@ class ReachEnv(gym.Env):
 
     def __init__(self, max_steps: int = 200, frame_skip: int = 10, action_scale: float = 0.025,
                  success_tol: float = 0.02, render_mode: str | None = None, sigma_near: float = 0.1,
-                 sigma_far: float = 1.2, bonus: float = 10, overshoot_weight: float = 0.5,
+                 sigma_far: float = 0.4, bonus: float = 10, overshoot_weight: float = 0.5,
                  action_weight: float = 0.01):
         self.model = build_model()
         self.data = mujoco.MjData(self.model)
@@ -79,7 +79,7 @@ class ReachEnv(gym.Env):
         """reward = -distance - action_weight * |action|^2 + (exp(-d/sigma_near) - 1) + (exp(-d/sigma_far) - 1)
         - overshoot_weight * max(0, overshoot) + (bonus if success). Returns (reward, success)."""
         success = False
-        reward = np.float32(-1*distance - self.action_weight*np.linalg.norm(action)**2 + (np.exp(-1*distance/self.sigma_near)-1) + (np.exp(-1*distance/self.sigma_far)-1) - self.overshoot_weight*max(0, overshoot))
+        reward = np.float32(-1*distance - self.action_weight*np.linalg.norm(action)**2 + (np.exp(-1*distance/self.sigma_near)-1) + 0*(np.exp(-1*distance/self.sigma_far)-1) - self.overshoot_weight*max(0, overshoot))
         if distance <= self.success_tol: 
             reward += self.bonus
             success = True
