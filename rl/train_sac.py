@@ -41,8 +41,8 @@ class CurriculumCallback(BaseCallback):
 
     def _on_training_start(self):
         self.suc_tol, self.overshoot = self.levels.pop(0)
-        self.training_env.set_attr("success_tol", self.suc_tol)
-        self.training_env.set_attr("overshoot_weight", self.overshoot)
+        self.training_env.env_method("set_wrapper_attr", "success_tol", self.suc_tol)
+        self.training_env.env_method("set_wrapper_attr", "overshoot_weight", self.overshoot)
 
     def _on_step(self):
         for done, info in zip(self.locals["dones"], self.locals["infos"]):
@@ -50,8 +50,8 @@ class CurriculumCallback(BaseCallback):
                 self.deque.append(info["is_success"])
         if len(self.deque) == self.deque.maxlen and np.mean(self.deque) >= self.threshold and self.levels:
             self.suc_tol, self.overshoot = self.levels.pop(0)
-            self.training_env.set_attr("success_tol", self.suc_tol)
-            self.training_env.set_attr("overshoot_weight", self.overshoot)
+            self.training_env.env_method("set_wrapper_attr", "success_tol", self.suc_tol)
+            self.training_env.env_method("set_wrapper_attr", "overshoot_weight", self.overshoot)
             self.deque.clear()
         self.logger.record("curriculum/success_tol", self.suc_tol)
         self.logger.record("curriculum/overshoot_weight", self.overshoot)
