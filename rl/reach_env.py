@@ -22,9 +22,9 @@ class ReachEnv(gym.Env):
     metadata = {"render_modes": ["human"], "render_fps": 50}
 
     def __init__(self, max_steps: int = 200, frame_skip: int = 10, action_scale: float = 0.025,
-                 success_tol: float = 0.02, render_mode: str | None = None, sigma_near: float = 0.1,
-                 sigma_far: float = 0.4, bonus: float = 10, overshoot_weight: float = 0.5,
-                 action_weight: float = 0.01):
+                 success_tol: float = 0.02, render_mode: str | None = None, sigma_near: float = 0.1, 
+                 bonus: float = 10, overshoot_weight: float = 0.5, action_weight: float = 0.01, 
+                 hold_steps=10, stayin_weight=0.2, rate_weight=0.05):
         self.model = build_model()
         self.data = mujoco.MjData(self.model)
         self.scratch = mujoco.MjData(self.model)  # for "what-if" FK when sampling targets
@@ -39,26 +39,32 @@ class ReachEnv(gym.Env):
         self.success_tol = success_tol
         self.render_mode = render_mode
         self.viewer = None
+
         self.sigma_near = sigma_near
-        self.sigma_far = sigma_far
         self.bonus = bonus
         self.overshoot_weight = overshoot_weight
         self.action_weight = action_weight
+        self.stayin_weight = stayin_weight
+        self.rate_weight = rate_weight
+
+        self.in_tol_steps = 0
+        self.prev_action = np.zeros(6)
+        self.hold_steps = hold_steps
 
         self.action_space = spaces.Box(-1.0, 1.0, shape=(6,), dtype=np.float32)
-        self.observation_space = spaces.Box(-np.inf, np.inf, shape=(21,), dtype=np.float32)
+        self.observation_space = spaces.Box(-np.inf, np.inf, shape=(27,), dtype=np.float32)
 
         self.target = np.zeros(3)
         self.steps = 0
 
     def _get_obs(self) -> np.ndarray:
-        """[joint angles (6), joint velocities (6), hand pos (3), target (3), target - hand (3)] as float32."""
+        """[joint angles (6), joint velocities (6), hand pos (3), target (3), target - hand (3), previous action (6)] as float32."""
         q = self.data.qpos[:]
         dq = self.data.qvel[:]
         pos, _ = ee_pose(self.model, self.data, q)
         target = self.target
         dist = target - pos
-        res = np.concatenate([q, dq, pos, target, dist], 0)
+        res = np.concatenate([q, dq, pos, target, dist, self.prev_action], 0)
         return res.astype(np.float32)
 
 
@@ -75,16 +81,17 @@ class ReachEnv(gym.Env):
                 return point
         
 
-    def _reward(self, distance: float, action: np.ndarray, overshoot: float=0.0) -> tuple[float, bool]:
-        """reward = -distance - action_weight * |action|^2 + (exp(-d/sigma_near) - 1) + (exp(-d/sigma_far) - 1)
-        - overshoot_weight * max(0, overshoot) + (bonus if success). Returns (reward, success)."""
+    def _reward(self, distance: float, action: np.ndarray, overshoot: float=0.0, in_tol_steps: int=0,
+                action_pen: float=0) -> tuple[float, bool]:
+        """reward = -distance - action_weight * |action|^2 + (exp(-d/sigma_near) - 1) - overshoot_weight * max(0, overshoot)
+        + stayin_weight * in_tol_steps - rate_weight * |action - prev_action|^2 + (bonus once held for hold_steps). Returns (reward, success)."""
         success = False
-        reward = np.float32(-1*distance - self.action_weight*np.linalg.norm(action)**2 + (np.exp(-1*distance/self.sigma_near)-1) + 0*(np.exp(-1*distance/self.sigma_far)-1) - self.overshoot_weight*max(0, overshoot))
-        if distance <= self.success_tol: 
+        reward = np.float32(-1*distance - self.action_weight*np.linalg.norm(action)**2 + (np.exp(-1*distance/self.sigma_near)-1) 
+                            - self.overshoot_weight*max(0, overshoot) + self.stayin_weight*in_tol_steps - self.rate_weight*action_pen)
+        if in_tol_steps >= self.hold_steps: 
             reward += self.bonus
             success = True
         return reward, success
-    # TO IMPROVE FOR BETTER CONVERGENCE: reward, tolerance, action size, observation
 
 
     def reset(self, seed: int | None = None, options: dict | None = None):
@@ -96,6 +103,8 @@ class ReachEnv(gym.Env):
         self.target = self._sample_target()
         self.data.mocap_pos[0] = self.target
         mujoco.mj_forward(self.model, self.data)
+        self.in_tol_steps = 0
+        self.prev_action = np.zeros(6)
         self.steps = 0
         return self._get_obs(), {}
 
@@ -106,16 +115,27 @@ class ReachEnv(gym.Env):
         self.data.ctrl = np.clip(self.data.ctrl, self.ctrl_low, self.ctrl_high)
         for i in range(self.frame_skip): mujoco.mj_step(self.model, self.data)
         mujoco.mj_forward(self.model, self.data)  # mj_step leaves site_xpos one step stale
+
+        # Distance from EE to target + # of consecutive times within target 
         dist = np.linalg.norm(self.target - self.data.site_xpos[self.ee_id])
+        if dist <= self.success_tol: self.in_tol_steps += 1
+        else: self.in_tol_steps = 0
+
+        # Outwards (base -> target) Approach
         u = self.target - self.data.xpos[self.base_id]
         u[2] = 0
         overshoot = 0
         if np.linalg.norm(u) > 1e-6:
             v = self.data.site_xpos[self.ee_id] - self.data.xpos[self.base_id]
             overshoot = (np.dot(u, v) / np.linalg.norm(u)) - np.linalg.norm(u)
-        reward, success = self._reward(dist, act, overshoot)
+
+        # Action Rate Penalty
+        action_pen = np.linalg.norm(act - self.prev_action)**2
+        self.prev_action = act.copy()
+
+        reward, success = self._reward(dist, act, overshoot, self.in_tol_steps, action_pen)
         self.steps += 1
-        return self._get_obs(), reward, success, self.steps >= self.max_steps, {"distance": dist, "is_success": success, "overshoot": overshoot}
+        return self._get_obs(), reward, success, self.steps >= self.max_steps, {"distance": dist, "is_success": success, "overshoot": overshoot, "in_tol_steps": self.in_tol_steps, "action_change": action_pen}
 
 
     # --- viewer (provided) ---------------------------------------------------------
