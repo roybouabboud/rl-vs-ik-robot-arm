@@ -51,12 +51,15 @@ def run_episode(policy, env: ReachEnv, seed: int) -> dict:
                     (about 1 = straight; a bit under 1 is normal, since the episode ends 2 cm short of the target)
     mean_joint_speed  mean of |qvel| (norm over the 6 joints) across steps [rad/s], lower = calmer
     max_overshoot   largest info["overshoot"] seen [m] (0 if it never went past the target)
+    mean_overshoot  mean of max(0, overshoot) over all steps [m], what the overshoot penalty actually charges
+    overshoot_frac  fraction of steps with the hand past the target (overshoot > 0)
     """
     obs, _ = env.reset(seed=seed)
     ee_start = env.data.site_xpos[env.ee_id].copy()
     dist_start = np.linalg.norm(env.target - ee_start)
     path = 0.0
     speeds = []
+    overs = []
     max_over = 0.0
     steps = 0
     prev_pos = ee_start
@@ -67,6 +70,7 @@ def run_episode(policy, env: ReachEnv, seed: int) -> dict:
         path += np.linalg.norm(env.data.site_xpos[env.ee_id].copy() - prev_pos)
         speeds.append(np.linalg.norm(env.data.qvel[:6]))
         if info["overshoot"] > max_over: max_over = info["overshoot"]
+        overs.append(max(0.0, info["overshoot"]))
         prev_pos = env.data.site_xpos[env.ee_id].copy()
         steps += 1
         if terminated or truncated: break
@@ -76,7 +80,9 @@ def run_episode(policy, env: ReachEnv, seed: int) -> dict:
             "steps": steps,
             "path_ratio": (path / dist_start),
             "mean_joint_speed": np.mean(speeds),
-            "max_overshoot": max_over}
+            "max_overshoot": max_over,
+            "mean_overshoot": np.mean(overs),
+            "overshoot_frac": np.mean(np.array(overs) > 0)}
 
 
 def benchmark(policy, env: ReachEnv, n_episodes: int, seed: int = 20_000) -> list[dict]:
@@ -94,6 +100,8 @@ def summarize(results: list[dict]) -> dict:
         "path_ratio": np.mean([r["path_ratio"] for r in results]),
         "joint_speed": np.mean([r["mean_joint_speed"] for r in results]),
         "max_overshoot_cm": 100 * np.mean([r["max_overshoot"] for r in results]),
+        "mean_overshoot_cm": 100 * np.mean([r["mean_overshoot"] for r in results]),
+        "overshoot_frac": np.mean([r["overshoot_frac"] for r in results]),
     }
 
 
