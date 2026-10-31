@@ -1,8 +1,4 @@
-"""Jacobians for the UR5e, using MuJoCo.
-
-Step 2 of the roadmap. Read kinematics/02_jacobians.md first,
-then fill in the TODOs. Check your work with: python kinematics/check_jacobian.py
-"""
+"""Jacobians for the UR5e, using MuJoCo."""
 
 import mujoco
 import numpy as np

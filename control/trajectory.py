@@ -1,8 +1,4 @@
-"""Smooth joint-space trajectories.
-
-Step 4 (part A). Read control/04_trajectories_and_control.md first,
-then fill in the TODOs. Check your work with: python control/check_control.py
-"""
+"""Smooth joint-space trajectories."""
 
 import numpy as np
 

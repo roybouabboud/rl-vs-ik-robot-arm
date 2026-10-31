@@ -1,7 +1,7 @@
-"""Drag the UR5e's actuator sliders and watch your ee_pose() output live.
+"""Drag the UR5e's actuator sliders and watch the ee_pose() output live.
 
 Run from the repo root:  python kinematics/view_fk.py
-Sliders: right-hand panel -> Control. Needs TODOs 1 and 2 in fk.py done.
+Sliders: right-hand panel -> Control.
 """
 
 import sys

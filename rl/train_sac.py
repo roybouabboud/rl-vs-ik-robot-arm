@@ -1,8 +1,5 @@
 """Train a SAC policy on ReachEnv with Stable-Baselines3, logging to TensorBoard.
 
-Step 6 of the roadmap (phase 2). Read rl/06_train_sac.md first,
-then fill in the TODOs. Check your work with: python rl/check_train_sac.py
-
 Train:   python rl/train_sac.py --steps 100000
 Watch:   tensorboard --logdir runs     (then open http://localhost:6006)
 """
@@ -89,7 +86,7 @@ def train(steps: int, n_envs: int = 1, seed: int = 0, run_name: str = "sac_reach
     success_tol / overshoot_weight curriculum (CurriculumCallback)."""
     train_env, eval_env = make_envs(n_envs, seed=seed)
     sac_model = make_model(train_env, seed=seed)
-    curriculum_callback = CurriculumCallback([(0.05, 0.0), (0.04, 0.15), (0.03, 0.3), (0.02, 0.5)])
+    curriculum_callback = CurriculumCallback([(0.05, 5.0), (0.04, 5.0), (0.03, 5.0), (0.02, 5.0)])
     eval_callback = make_eval_callback(eval_env, run_name, eval_freq=max(eval_freq//n_envs, 1))
     sac_model.learn(steps, callback=list([eval_callback, curriculum_callback]), tb_log_name=run_name)
     train_env.save(CKPT_DIR/run_name/"vecnormalize.pkl")

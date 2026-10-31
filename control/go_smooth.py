@@ -1,9 +1,8 @@
 """Type a point: IK plans the joint angles, a min-jerk trajectory gets there smoothly,
-and your PD + gravity-compensation torque controller holds it precisely.
+and a PD + gravity-compensation torque controller holds it precisely.
 
 Run from the repo root:  python control/go_smooth.py
 Type `x y z` (or several: `0.4 0.2 0.5; 0.3 -0.4 0.2`) and press Enter. `q` quits.
-Needs step 4's TODOs done (and ik_dls from step 3).
 """
 
 import sys

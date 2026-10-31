@@ -8,7 +8,7 @@ __pycache__/
 venv/
 .ipynb_checkpoints/
 
-# Training outputs (later phases)
+# Training outputs
 runs/
 checkpoints/
 wandb/
@@ -21,15 +21,23 @@ Thumbs.db
 .vscode/
 .idea/
 
-# Tutorial guides and checkers stay local (not pushed)
+# Local notes and checks (not part of the published project)
 kinematics/0*_*.md
 kinematics/check_*.py
-
-# Local Claude Code settings
-.claude/
-
-# Same for later steps
 control/0*_*.md
 control/check_*.py
 rl/0*_*.md
 rl/check_*.py
+
+# Local Claude Code settings
+.claude/
+
+# Early experiments and scratch scripts
+test/
+rl/watch_random.py
+
+# Empty placeholder folders
+envs/
+models/
+experiments/
+scripts/

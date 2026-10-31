@@ -1,8 +1,5 @@
-"""Inverse kinematics for the UR5e: position-only (step 3) and full pose (step 3b).
-
-Step 3: read kinematics/03_inverse_kinematics.md, check with python kinematics/check_ik.py
-Step 3b: read kinematics/03b_pose_ik.md, check with python kinematics/check_pose_ik.py
-"""
+"""Inverse kinematics for the UR5e on MuJoCo's Jacobian: position-only (pseudo-inverse and
+damped least squares) and full pose (position + orientation, with random restarts)."""
 
 import mujoco
 import numpy as np
@@ -75,7 +72,7 @@ def ik_dls(model: mujoco.MjModel, data: mujoco.MjData, target, q0,
     return q, False, max_iters
 
 
-# --- Step 3b: full pose (position + orientation) ---------------------------------
+# --- Full pose (position + orientation) -------------------------------------------
 
 # Flange pointing straight down (tool z axis = world -z). Same as the "home" keyframe's orientation.
 R_DOWN = np.diag([1.0, -1.0, -1.0])
@@ -151,11 +148,7 @@ if __name__ == "__main__":
         q, ok, iters = solver(model, data, target, q0)
         print(f"{solver.__name__}: success={ok} in {iters} iters, q={q}, hand at {ee_pose(model, data, q)[0]}")
 
-    try:
-        q, ok, n = ik_pose_restarts(model, data, np.array([0.4, 0.2, 0.3]), R_DOWN, q0)
-    except NotImplementedError:
-        print("ik_pose_restarts: step 3b not done yet")
-    else:
-        pos, R = ee_pose(model, data, q)
-        print(f"ik_pose_restarts (pointing down): success={ok} after {n} restarts, hand at {pos}")
-        print("hand R=\n", R)
+    q, ok, n = ik_pose_restarts(model, data, np.array([0.4, 0.2, 0.3]), R_DOWN, q0)
+    pos, R = ee_pose(model, data, q)
+    print(f"ik_pose_restarts (pointing down): success={ok} after {n} restarts, hand at {pos}")
+    print("hand R=\n", R)

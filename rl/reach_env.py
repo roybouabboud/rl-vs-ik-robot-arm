@@ -1,8 +1,4 @@
-"""A Gymnasium environment: move the UR5e's hand to a random target point.
-
-Step 5 of the roadmap (phase 2). Read rl/05_reach_env.md first,
-then fill in the TODOs. Check your work with: python rl/check_reach_env.py
-"""
+"""A Gymnasium environment: move the UR5e's hand to a random target point."""
 
 import sys
 from pathlib import Path
@@ -23,8 +19,8 @@ class ReachEnv(gym.Env):
 
     def __init__(self, max_steps: int = 200, frame_skip: int = 10, action_scale: float = 0.025,
                  success_tol: float = 0.02, render_mode: str | None = None, sigma_near: float = 0.1, 
-                 bonus: float = 10, overshoot_weight: float = 0.5, action_weight: float = 0.01, 
-                 hold_steps=10, stayin_weight=0.2, rate_weight=0.05):
+                 bonus: float = 10, overshoot_weight: float = 5.0, action_weight: float = 0.01, 
+                 hold_steps=10, stayin_weight=0.5, rate_weight=0.05):
         self.model = build_model()
         self.data = mujoco.MjData(self.model)
         self.scratch = mujoco.MjData(self.model)  # for "what-if" FK when sampling targets
@@ -145,7 +141,7 @@ class ReachEnv(gym.Env):
         return self._get_obs(), reward, success, self.steps >= self.max_steps, {"distance": dist, "is_success": success, "overshoot": overshoot, "in_tol_steps": self.in_tol_steps, "action_change": action_pen}
 
 
-    # --- viewer (provided) ---------------------------------------------------------
+    # --- viewer -------------------------------------------------------------------
     def render(self):
         if self.render_mode != "human":
             return

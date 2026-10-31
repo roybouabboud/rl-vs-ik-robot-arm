@@ -1,7 +1,6 @@
 """Plot how well-conditioned the UR5e's Jacobian is as the elbow and wrist_2 joints sweep.
 
 Run from the repo root:  python kinematics/explore_singularity.py
-Needs TODOs 1 and 4 in jacobian.py done.
 """
 
 import sys

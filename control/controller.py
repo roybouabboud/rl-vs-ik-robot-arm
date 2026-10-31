@@ -1,8 +1,4 @@
-"""Torque control for the UR5e: PD + gravity compensation along a min-jerk trajectory.
-
-Step 4 (part B). Read control/04_trajectories_and_control.md first,
-then fill in the TODOs. Check your work with: python control/check_control.py
-"""
+"""Torque control for the UR5e: PD + gravity compensation along a min-jerk trajectory."""
 
 import sys
 import time
@@ -23,7 +19,7 @@ KD = np.array([40.0, 40.0, 40.0, 10.0, 10.0, 10.0])        # N·m / (rad/s)
 
 def make_torque_model(with_target: bool = True) -> mujoco.MjModel:
     """The UR5e scene with every actuator switched to a torque motor (ctrl = N·m, clipped to the
-    real UR5e limits), plus an optional red mocap sphere to mark targets. Provided, not a TODO.
+    real UR5e limits), plus an optional red mocap sphere to mark targets.
     """
     spec = mujoco.MjSpec.from_file(str(MODEL_PATH.parent / "scene.xml"))
     for act in spec.actuators:

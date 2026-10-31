@@ -1,8 +1,6 @@
 """Benchmark the trained SAC policy against the IK solver on the same targets.
 
-Step 7 of the roadmap (phase 2). Read rl/07_benchmark.md, fill in the TODOs, check with
-python rl/check_benchmark.py, then:
-    python rl/benchmark.py --model checkpoints/sac_outwards_500k/final.zip --episodes 200
+    python rl/benchmark.py --model checkpoints/<run>/final.zip --episodes 200
 """
 
 import argparse
@@ -21,7 +19,7 @@ ROOT = Path(__file__).resolve().parent.parent
 
 
 class IKPolicy:
-    """The step 3 IK solver as a policy with the same predict() interface as an SB3 model.
+    """The damped-least-squares IK solver (kinematics/ik.py) as a policy with the same predict() interface as an SB3 model.
 
     When the env's target changes, solve IK once for the goal joint angles. Every step, return the
     action that moves the servo targets (env.data.ctrl) towards that goal, as far as one action

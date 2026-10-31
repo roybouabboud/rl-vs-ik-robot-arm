@@ -4,3 +4,4 @@ matplotlib>=3.8
 gymnasium>=1.0
 stable-baselines3>=2.4
 tensorboard>=2.18
+pillow>=10.0

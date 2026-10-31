@@ -3,7 +3,6 @@
 Run from the repo root:  python kinematics/go_to_pose.py
 Then type `x y z` in this terminal (e.g. `0.4 0.2 0.3`) and press Enter. `q` quits.
 Several points at once, visited in order: `0.4 0.2 0.3; 0.3 -0.4 0.2`.
-Needs ik_pose_restarts in ik.py done.
 """
 
 import sys

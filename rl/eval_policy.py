@@ -1,6 +1,5 @@
 """Score a trained policy on ReachEnv, compare it with random actions, and optionally watch it.
 
-Step 6 of the roadmap (phase 2). Fill in the TODO, then:
     python rl/eval_policy.py                    # scores checkpoints/sac_reach/best_model.zip
     python rl/eval_policy.py --render           # ...and shows it in the viewer
     python rl/eval_policy.py --model checkpoints/sac_reach/final.zip

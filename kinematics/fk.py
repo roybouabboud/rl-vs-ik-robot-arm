@@ -1,8 +1,4 @@
-"""Forward kinematics for the UR5e, using MuJoCo.
-
-Step 1 of the roadmap. Read kinematics/01_forward_kinematics.md first,
-then fill in the TODOs. Check your work with: python kinematics/check_fk.py
-"""
+"""Forward kinematics for the UR5e, using MuJoCo."""
 
 from pathlib import Path
 

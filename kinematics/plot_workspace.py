@@ -1,4 +1,4 @@
-"""3-D scatter of the UR5e's reachable workspace, built from your sample_workspace().
+"""3-D scatter of the UR5e's reachable workspace, built from sample_workspace().
 
 Run from the repo root:  python kinematics/plot_workspace.py
 Drag in the plot window to rotate it.
@@ -20,8 +20,6 @@ model, data = load_ur5e()
 
 points = sample_workspace(model, n=N, seed=0)
 
-# TODO 2: compute each point's distance from SHOULDER, shape (N,).
-# Hint: subtract, then np.linalg.norm along the right axis.
 dist = np.linalg.norm(points - SHOULDER, axis=1)
 
 print(f"{N} samples, reach from shoulder: min {dist.min():.3f} m, max {dist.max():.3f} m")
