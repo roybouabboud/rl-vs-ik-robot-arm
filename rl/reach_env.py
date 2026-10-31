@@ -19,7 +19,7 @@ class ReachEnv(gym.Env):
 
     def __init__(self, max_steps: int = 200, frame_skip: int = 10, action_scale: float = 0.025,
                  success_tol: float = 0.02, render_mode: str | None = None, sigma_near: float = 0.1, 
-                 bonus: float = 10, overshoot_weight: float = 5.0, action_weight: float = 0.01, 
+                 bonus: float = 10, overshoot_weight: float = 0.0, action_weight: float = 0.01, 
                  hold_steps=10, stayin_weight=0.5, rate_weight=0.05):
         self.model = build_model()
         self.data = mujoco.MjData(self.model)

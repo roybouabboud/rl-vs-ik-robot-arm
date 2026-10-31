@@ -30,7 +30,6 @@ same job, benchmarked against the classical solver. Simulation and software only
   (27 numbers), and outputs a change to the six joint position targets (at most 0.025 rad per 0.02 s step).
   The reward combines:
   - distance to the target, with an exponential term that pulls hard in the last few centimetres;
-  - an **approach-direction penalty** for coming in from beyond the target instead of outwards from the base;
   - penalties on action size and on **changes in action** between steps, for smooth motion;
   - success only after the hand **holds** within 2 cm for 10 steps, so hovering or oscillating through the target
     doesn't count.
@@ -58,6 +57,8 @@ SAC (500k training steps) against damped-least-squares IK, 200 identical targets
 - **IK wins close to the base and up high** (91% and 97% against SAC's 71% and 79%). Most of SAC's misses (28 of 38)
   end 2 to 5 cm from the target: it arrives but doesn't settle within 2 cm.
 - Paths are about equally direct; SAC still moves its joints more than IK for the same result.
+- I also tried an approach-direction penalty (come in outwards from the base, never from beyond the target). SAC's
+  overshoot stayed the same as IK's, which doesn't try at all, so it's switched off (`overshoot_weight=0`).
 
 ## Next steps
 
