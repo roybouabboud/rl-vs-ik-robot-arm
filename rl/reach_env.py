@@ -70,15 +70,22 @@ class ReachEnv(gym.Env):
 
     def _sample_target(self) -> np.ndarray:
         """A random reachable point: FK of random joint angles (on self.scratch), at least 5 cm above
-        the floor and at least 20 cm from the base's vertical axis. Use self.np_random."""
+        the floor and at least 20 cm from the base's vertical axis, from a pose where the arm doesn't touch
+        the floor or itself (so at least one collision-free way to reach it exists). Use self.np_random."""
         lims = self.model.jnt_range
         low_lims = lims[:,0]
         high_lims = lims[:, 1]
         while True:
             q_rand = self.np_random.uniform(low_lims, high_lims)
             point, _ = ee_pose(self.model, self.scratch, q_rand)
-            if point[2] > 0.05 and np.linalg.norm(point[:2]) > 0.2:
+            if point[2] > 0.05 and np.linalg.norm(point[:2]) > 0.2 and not self._in_collision(q_rand):
                 return point
+
+    def _in_collision(self, q: np.ndarray) -> bool:
+        """True if the arm at joint angles q touches the floor or itself (checked on self.scratch)."""
+        self.scratch.qpos[:6] = q
+        mujoco.mj_forward(self.model, self.scratch)
+        return self.scratch.ncon > 0
         
 
     def _reward(self, distance: float, action: np.ndarray, overshoot: float=0.0, in_tol_steps: int=0,
