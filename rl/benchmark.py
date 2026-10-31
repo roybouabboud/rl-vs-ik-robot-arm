@@ -29,18 +29,17 @@ class IKPolicy:
 
     def __init__(self, env: ReachEnv):
         self.env = env
-        self.target = None   # the target the current q_goal was solved for
+        self.target = None
         self.q_goal = None
         self.solved = False  # did the last IK solve converge?
 
     def predict(self, obs, deterministic=True):
-        # TODO 1: if self.target is None or differs from self.env.target, re-solve:
-        #   ik_dls(model, data, target, q0) -> (q, success, iterations)
-        #   - pass self.env.scratch as data (a spare MjData, so the sim isn't touched)
-        #   - start from the current joint angles: self.env.data.qpos[:6]
-        #   - remember the target (as a copy), q_goal and success
-        # TODO 2: action = (q_goal - current ctrl) / env.action_scale, clipped to [-1, 1]
-        raise NotImplementedError
+        if self.target is None or not np.allclose(self.env.target, self.target):
+            q_goal, success, _ = ik_dls(self.env.model, self.env.scratch, self.env.target, self.env.data.qpos[:6].copy())
+            self.target = self.env.target.copy()
+            self.q_goal = q_goal.copy()
+            self.solved = success
+        action = np.clip((self.q_goal - self.env.data.ctrl) / self.env.action_scale, -1, 1)
         return action, None
 
 
@@ -55,10 +54,31 @@ def run_episode(policy, env: ReachEnv, seed: int) -> dict:
     mean_joint_speed  mean of |qvel| (norm over the 6 joints) across steps [rad/s], lower = calmer
     max_overshoot   largest info["overshoot"] seen [m] (0 if it never went past the target)
     """
-    # TODO 3: reset, record the start hand position and start distance, then loop until terminated or
-    #   truncated, accumulating the hand's path length and the joint speeds. The hand position is
-    #   env.data.site_xpos[env.ee_id], joint velocities env.data.qvel[:6].
-    raise NotImplementedError
+    obs, _ = env.reset(seed=seed)
+    ee_start = env.data.site_xpos[env.ee_id].copy()
+    dist_start = np.linalg.norm(env.target - ee_start)
+    path = 0.0
+    speeds = []
+    max_over = 0.0
+    steps = 0
+    prev_pos = ee_start
+
+    while True:
+        action, _ = policy.predict(obs, deterministic=True)
+        obs, _, terminated, truncated, info = env.step(action)
+        path += np.linalg.norm(env.data.site_xpos[env.ee_id].copy() - prev_pos)
+        speeds.append(np.linalg.norm(env.data.qvel[:6]))
+        if info["overshoot"] > max_over: max_over = info["overshoot"]
+        prev_pos = env.data.site_xpos[env.ee_id].copy()
+        steps += 1
+        if terminated or truncated: break
+
+    return {"success": info["is_success"],
+            "final_distance": info["distance"],
+            "steps": steps,
+            "path_ratio": (path / dist_start),
+            "mean_joint_speed": np.mean(speeds),
+            "max_overshoot": max_over}
 
 
 def benchmark(policy, env: ReachEnv, n_episodes: int, seed: int = 20_000) -> list[dict]:
