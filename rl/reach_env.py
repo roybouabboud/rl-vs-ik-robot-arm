@@ -19,6 +19,7 @@ class ReachEnv(gym.Env):
 
     def __init__(self, max_steps: int = 200, frame_skip: int = 10, action_scale: float = 0.025,
                  success_tol: float = 0.02, render_mode: str | None = None, sigma_near: float = 0.1, 
+                 sigma_fine: float = 0.02, fine_weight: float = 0.5,
                  bonus: float = 10, overshoot_weight: float = 0.0, action_weight: float = 0.01, 
                  hold_steps=10, stayin_weight=0.5, rate_weight=0.05):
         self.model = build_model()
@@ -37,6 +38,8 @@ class ReachEnv(gym.Env):
         self.viewer = None
 
         self.sigma_near = sigma_near
+        self.sigma_fine = sigma_fine
+        self.fine_weight = fine_weight
         self.bonus = bonus
         self.overshoot_weight = overshoot_weight
         self.action_weight = action_weight
@@ -86,11 +89,13 @@ class ReachEnv(gym.Env):
 
     def _reward(self, distance: float, action: np.ndarray, overshoot: float=0.0, in_tol_steps: int=0,
                 action_pen: float=0) -> tuple[float, bool]:
-        """reward = -distance - action_weight * |action|^2 + (exp(-d/sigma_near) - 1) - overshoot_weight * max(0, overshoot)
+        """reward = -distance - action_weight * |action|^2 + (exp(-d/sigma_near) - 1)
+        + fine_weight * (exp(-d/sigma_fine) - 1) - overshoot_weight * max(0, overshoot)
         + stayin_weight * in_tol_steps - rate_weight * |action - prev_action|^2 + (bonus once held for hold_steps). Returns (reward, success)."""
         success = False
-        reward = np.float32(-1*distance - self.action_weight*np.linalg.norm(action)**2 + (np.exp(-1*distance/self.sigma_near)-1) 
-                            - self.overshoot_weight*max(0, overshoot) + self.stayin_weight*in_tol_steps - self.rate_weight*action_pen)
+        reward = np.float32(-1*distance - self.action_weight*np.linalg.norm(action)**2 + (np.exp(-1*distance/self.sigma_near)-1)
+                            + self.fine_weight*(np.exp(-1*distance/self.sigma_fine)-1) 
+                            - self.overshoot_weight*max(0, overshoot) + self.stayin_weight*in_tol_steps - self.rate_weight*action_pen )
         if in_tol_steps >= self.hold_steps: 
             reward += self.bonus
             success = True
