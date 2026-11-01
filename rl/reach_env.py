@@ -95,7 +95,7 @@ class ReachEnv(gym.Env):
         success = False
         reward = np.float32(-1*distance - self.action_weight*np.linalg.norm(action)**2 + (np.exp(-1*distance/self.sigma_near)-1)
                             + self.fine_weight*(np.exp(-1*distance/self.sigma_fine)-1) 
-                            - self.overshoot_weight*max(0, overshoot) + self.stayin_weight*in_tol_steps - self.rate_weight*action_pen )
+                            - self.overshoot_weight*max(0, overshoot) + self.stayin_weight*in_tol_steps - self.rate_weight*action_pen)
         if in_tol_steps >= self.hold_steps: 
             reward += self.bonus
             success = True
