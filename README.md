@@ -2,8 +2,9 @@
 
 ![A SAC policy moving a simulated UR5e to a chain of random targets](media/demo.gif)
 
-*A reinforcement-learning policy (SAC) driving a simulated UR5e arm to random target points (red) in MuJoCo.
-Each target has to be reached within 2 cm and held there before the next one appears.*
+*The final reinforcement-learning policy (SAC) driving a simulated UR5e arm to target points (red) in MuJoCo. Each
+target has to be reached within 2 cm and held for 0.2 s before the next one appears. Highlight reel: each target is
+the fastest-held of 12 random candidates (`rl/record_demo.py --best-of 12`); typical performance is in Results.*
 
 The goal of this project is a simulated robot arm that goes to any point it's asked to. I built it up in layers:
 first classical kinematics and control on top of MuJoCo, then a reinforcement-learning policy trained to do the
