@@ -28,11 +28,9 @@ same job, benchmarked against the classical solver. Simulation and software only
 - **`reach_env.py`, a Gymnasium environment.** Each episode samples a target the arm can reach without touching the
   floor or itself. The policy sees joint angles and velocities, hand and target positions and its previous action
   (27 numbers), and outputs a change to the six joint position targets (at most 0.025 rad per 0.02 s step).
-  The reward combines:
-  - distance to the target, with an exponential term that pulls hard in the last few centimetres;
-  - penalties on action size and on **changes in action** between steps, for smooth motion;
-  - success only after the hand **holds** within 2 cm for 10 steps, so hovering or oscillating through the target
-    doesn't count.
+  The final reward is deliberately simple: distance to the target, an exponential term that pulls hard in the last
+  few centimetres, a small penalty on action size, and success only after the hand **holds** within 2 cm for 10
+  steps. The other terms I tried are still in the code with their weights set to 0 (see Results).
 - **`train_sac.py`:** Soft Actor-Critic from Stable-Baselines3 on 4 parallel environments, with observation
   normalisation (`VecNormalize`), periodic evaluation on unseen targets, TensorBoard logging, and a **curriculum**
   callback that tightens the success tolerance from 5 cm to 2 cm as the rolling success rate passes 80%.
@@ -42,27 +40,56 @@ same job, benchmarked against the classical solver. Simulation and software only
 
 ## Results
 
-SAC (500k training steps) against damped-least-squares IK, 200 identical targets:
+All numbers below come from `benchmark.py`: every controller runs on the **same 200 random targets** (collision-free,
+unseen in training), with the same speed limit. Success means the hand reached the target within 2 cm **and held it
+there for 10 steps** (0.2 s).
 
-| | success | final distance | steps to reach | path length / straight line | joint speed |
-|---|---|---|---|---|---|
-| random | 0% | 72.8 cm | – | – | 0.37 rad/s |
-| IK | **86.5%** | 2.2 cm | 79 | 1.14 | 0.97 rad/s |
-| SAC | 73.0% | 2.2 cm | 82 | 1.16 | 1.14 rad/s |
+### Reward experiments: what I tried, why, and what happened
 
-- IK is the stronger controller overall. It has the exact model; SAC learned only from trial and error.
-- **SAC reaches 11 targets that IK can't.** IK only knows geometry, so it sometimes picks a joint solution that runs
-  the arm into the floor or into itself; SAC appears to have learned configurations that avoid it. It also does
-  better than IK on far-out targets (67% vs 55%) and low targets (69% vs 56%).
-- **IK wins close to the base and up high** (91% and 97% against SAC's 71% and 79%). Most of SAC's misses (28 of 38)
-  end 2 to 5 cm from the target: it arrives but doesn't settle within 2 cm.
-- Paths are about equally direct; SAC still moves its joints more than IK for the same result.
-- I also tried an approach-direction penalty (come in outwards from the base, never from beyond the target). SAC's
-  overshoot stayed the same as IK's, which doesn't try at all, so it's switched off (`overshoot_weight=0`).
+Each run below trained SAC for 500k steps. I changed the reward to fix something I saw when watching the policy, then
+measured whether it actually helped.
+
+| run | what changed, and why | success (held) | success (touch once) | joint speed |
+|---|---|---|---|---|
+| IK baseline | damped least squares on MuJoCo's Jacobian | **86.5%** | **87.5%** | 0.97 rad/s |
+| 1. outward | an **approach-direction penalty**: the arm sometimes swept *through* the target from the far side, so overshooting the target (measured outwards from the base) cost reward | 80.0% | 82.5% | 1.14 rad/s |
+| 2. curriculum | the policy often stopped just outside the 2 cm ball, so a **curriculum** starts at 5 cm and tightens to 2 cm as the success rate passes 80% | 78.5% | 82.5% | 1.11 rad/s |
+| 3. + hold + action rate | it jittered around the target, so success now required **holding** for 10 steps, and an **action-rate penalty** punished changing the command from one step to the next | 73.0% | 83.0% | 1.14 rad/s |
+| 4. final | the same, with the **action-rate penalty off** and the approach penalty off | **80.0%** | 81.5% | 1.21 rad/s |
+
+What the numbers say:
+
+- **No reward change made SAC better at reaching.** Every version touches 81.5–83% of targets; the differences are
+  within the ±3% noise of a 200-target test.
+- **The action-rate penalty was the expensive one.** It's the only change that hurt: with it, the policy touches as
+  many targets but holds far fewer (83% → 73%). Without it (run 4), holding recovers to 80%.
+- **Training with the hold didn't teach holding.** Runs 1 and 2 never saw the hold rule and still hold 78.5–80%, the
+  same as run 4. What the hold *did* change is the honesty of the metric: a pass through the target no longer counts.
+- **The approach-direction penalty didn't change the approach.** SAC's average overshoot stayed level with IK's, which
+  makes no attempt to approach from the base side, so the final version leaves it off.
+- **No reward term made SAC move as economically as IK.** Its joints move about 15–25% faster for the same result.
+
+The simplest reward did as well as the elaborate ones.
+
+### Final policy against IK, target by target
+
+| | IK reaches | IK misses |
+|---|---|---|
+| **SAC reaches** | 147 | 13 |
+| **SAC misses** | 26 | 14 |
+
+- **SAC reaches 13 targets that IK can't.** IK only knows geometry, so it sometimes picks a joint solution that runs
+  the arm into the floor or into itself; SAC appears to have learned arm configurations that avoid that. It does best
+  relative to IK on **far-out targets** (70% vs 55%), where the stretched arm likely sags under gravity and IK, aiming
+  exactly at the target, settles just short of it.
+- **IK wins close to the base, up high and very low** (91%, 97% and 56% against SAC's 80%, 86% and 38%). Most of
+  SAC's misses (21 of 26) end 2–5 cm away: it arrives but doesn't settle inside 2 cm.
+- 14 targets defeat both.
 
 ## Next steps
 
-- Close the precision gap: more training at the final 2 cm tolerance and a stronger reward for holding still.
+- Close the precision gap: SAC's misses are near misses, which points to a fine-positioning controller for the last
+  few centimetres rather than more reward terms.
 - **Vision-language-action.** Replace the typed target with language and vision: a VLM that turns
   "go to the red cube" and a camera image into a 3-D target for the controllers here, and then an end-to-end VLA
   policy that maps images and instructions straight to joint actions.
