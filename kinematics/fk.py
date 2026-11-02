@@ -12,6 +12,9 @@ EE_SITE = "attachment_site"
 
 def load_ur5e() -> tuple[mujoco.MjModel, mujoco.MjData]:
     """Load the UR5e model from MODEL_PATH and create its data."""
+    if not MODEL_PATH.exists():
+        raise FileNotFoundError(f"{MODEL_PATH} not found. Clone the robot models into the repo root first: "
+                                "git clone https://github.com/google-deepmind/mujoco_menagerie.git")
     model = mujoco.MjModel.from_xml_path(str(MODEL_PATH))
     data = mujoco.MjData(model)
     return model, data

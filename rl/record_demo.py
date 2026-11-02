@@ -1,7 +1,7 @@
 """Record a GIF of a trained policy reaching a chain of random targets, for the README.
 
 Run from the repo root:
-    python rl/record_demo.py --model checkpoints/<run>/final.zip --out media/demo.gif
+    python rl/record_demo.py --model checkpoints/<run>/final.zip --out media/reach_demo.gif
 Uses vecnormalize.pkl next to the model if present. After each target, a new one appears without
 resetting the arm, so the clip shows one continuous motion. With --best-of N, each next target is the
 one (of N random candidates at least 25 cm away) that the policy reaches and holds fastest from where
@@ -97,7 +97,7 @@ def record(policy, env: ReachEnv, n_targets: int, seed: int, every: int, size: t
 if __name__ == "__main__":
     parser = argparse.ArgumentParser()
     parser.add_argument("--model", required=True)
-    parser.add_argument("--out", default="media/demo.gif")
+    parser.add_argument("--out", default="media/reach_demo.gif")
     parser.add_argument("--targets", type=int, default=10)
     parser.add_argument("--best-of", type=int, default=12, help="candidate targets per step; 1 = purely random")
     parser.add_argument("--seed", type=int, default=123)

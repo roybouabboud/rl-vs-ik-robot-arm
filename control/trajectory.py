@@ -1,4 +1,8 @@
-"""Smooth joint-space trajectories."""
+"""Smooth joint-space trajectories.
+
+A minimum-jerk profile starts and ends with zero velocity and zero acceleration, so the arm eases in and out
+of every move instead of jerking; each joint follows the same profile, so all joints arrive together.
+"""
 
 import numpy as np
 

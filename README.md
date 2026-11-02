@@ -1,6 +1,6 @@
 # robot_rl_vla
 
-![A SAC policy moving a simulated UR5e to a chain of random targets](media/demo.gif)
+![A SAC policy moving a simulated UR5e to a chain of random targets](media/reach_demo.gif)
 
 *The final reinforcement-learning policy (SAC) driving a simulated UR5e arm to target points (red) in MuJoCo. Each
 target has to be reached within 2 cm and held for 0.2 s before the next one appears. Highlight reel: each target is
@@ -98,6 +98,7 @@ The simplest reward did as well as the elaborate ones.
 ## Setup
 
 ```bash
+# Python 3.10+
 pip install -r requirements.txt
 git clone https://github.com/google-deepmind/mujoco_menagerie.git   # robot models (not tracked here)
 ```
