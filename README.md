@@ -1,4 +1,4 @@
-# robot_rl_vla
+# RL vs. IK: teaching a 6-DOF robot arm to reach
 
 ![A SAC policy moving a simulated UR5e to a chain of random targets](media/reach_demo.gif)
 
