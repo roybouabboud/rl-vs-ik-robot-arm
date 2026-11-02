@@ -115,8 +115,13 @@ if __name__ == "__main__":
     frames, held = record(policy, env, args.targets, args.seed, args.every, (args.width, args.height),
                           pause=10, best_of=args.best_of)
 
-    # one shared palette for the whole clip; octree keeps small distinct colours such as the red target
-    palette = frames[len(frames) // 2].quantize(colors=args.colors, method=Image.Quantize.FASTOCTREE)
+    # one shared palette for the whole clip, built from frames spread across it so that small, rare colours
+    # (the red target) get palette entries too
+    picks = frames[::max(1, len(frames) // 12)]
+    strip = Image.new("RGB", (args.width * len(picks), args.height))
+    for i, f in enumerate(picks):
+        strip.paste(f, (i * args.width, 0))
+    palette = strip.quantize(colors=args.colors, method=Image.Quantize.FASTOCTREE)
     frames = [f.quantize(palette=palette) for f in frames]
     out = Path(args.out)
     out.parent.mkdir(parents=True, exist_ok=True)
